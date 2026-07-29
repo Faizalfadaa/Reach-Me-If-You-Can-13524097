@@ -20,6 +20,10 @@ public:
         this->matrix = value;
     };
 
+    vector<vector<double>> getValue() {
+        return this->matrix;
+    }
+
     Matrix operator*(const Matrix& other) const {
         Matrix result;
 
@@ -34,7 +38,7 @@ public:
         return result;
     }
 
-    Matrix rotation(double angle) {
+    static Matrix rotation(double angle) {
         return Matrix({
             {cos(angle), -sin(angle), 0},
             {sin(angle), cos(angle), 0},
@@ -42,7 +46,7 @@ public:
         });
     };
 
-    Matrix translation(double x, double y) {
+    static Matrix translation(double x, double y) {
         return Matrix({
             {1, 0, x},
             {0, 1, y},
@@ -50,7 +54,7 @@ public:
         });
     };
 
-    Matrix homogeniousMatrix(double length, double angle) {
+    static Matrix homogeniousMatrix(double length, double angle) {
         return translation(length, 0.0) * rotation(angle);
     }
 };
