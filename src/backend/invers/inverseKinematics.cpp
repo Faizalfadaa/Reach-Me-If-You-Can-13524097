@@ -6,6 +6,8 @@ using namespace std;
 
 const double DEGREE = 0.01;
 const double LAMBDA = 0.5;
+const int MAX_ITERATION = 1000;
+const double TOLERANCE = 1e-3;
 
 // Compute Error vector
 Matrix error(Matrix target, Matrix endEffector) {
@@ -56,8 +58,9 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
     bool found = false;
+    int iteration = 0;
 
-    while(!found) {
+    while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
         Matrix endEffector = forwardKinematics(lengths, angles); 
 
@@ -95,6 +98,13 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
         for(int i = 0; i < jointCount; i++) {
             angles[i] += a * (change.getData()[i][0]);
         };
+
+        double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
+        if(errorNorm < TOLERANCE) {
+            found = true;
+        }
+
+        iteration++;
     }
 };
 
@@ -103,9 +113,10 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
     // Get the End effector position using inverse kinematics
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
+    int iteration = 0;
     bool found = false;
 
-    while(!found) {
+    while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
         Matrix endEffector = forwardKinematics(lengths, angles); 
 
@@ -136,10 +147,10 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
         Matrix JJT = J * JT;
 
         double lambda2 = pow(LAMBDA, 2.0);
-        Matrix lambda2I = Matrix::identity(jointCount);
+        Matrix lambda2I = Matrix::identity(JJT.getRow());
 
-        for(int i = 0; i < jointCount; i++) {
-            for(int j = 0; j < jointCount; j++) {
+        for(int i = 0; i < lambda2I.getRow(); i++) {
+            for(int j = 0; j < lambda2I.getColumn(); j++) {
                 lambda2I.getData()[i][j] *= lambda2;
             }
         }
@@ -147,7 +158,7 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
         Matrix A(JJT.getRow(), JJT.getColumn());
         for(int i = 0; i < JJT.getRow(); i++) {
             for(int j = 0; j < JJT.getColumn(); j++) {
-                A.getData()[i][j] += lambda2I.getData()[i][j];
+                A.getData()[i][j] += (JJT.getData()[i][j] + lambda2I.getData()[i][j]);
             }
         }
 
@@ -158,5 +169,12 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
         for (int i = 0; i < jointCount; i++) {
             angles[i] += deltaTetha.getData()[i][0];
         }
+
+        double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
+        if(errorNorm < TOLERANCE) {
+            found = true;
+        }
+
+        iteration++;
     }    
 }
