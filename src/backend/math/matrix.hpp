@@ -60,6 +60,69 @@ class Matrix {
             return result;
         }
 
+        Matrix inverse() const {
+            if (this->row != this->col) {
+                throw invalid_argument(
+                    "[ERROR] Matrix is not square"
+                );
+            }
+
+            int n = this->row;
+            Matrix augmented(n, 2 * n);
+
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    augmented.data[i][j] = this->data[i][j];
+                }
+
+                augmented.data[i][n + i] = 1.0;
+            }
+
+            // Proses eliminasi Gauss Jordan
+            for (int i = 0; i < n; i++) {
+                int pivotRow = i;
+                for (int j = i + 1; j < n; j++) {
+                    if ((augmented.data[j][i]) > (augmented.data[pivotRow][i])) {
+                        pivotRow = j;
+                    }
+                }
+
+                if (fabs(augmented.data[pivotRow][i]) < 1e-12) {
+                    throw invalid_argument("[ERROR] Matrix is singular");
+                }
+
+                if (pivotRow != i) {
+                    vector<double> temp = augmented.data[i];
+                    augmented.data[i] = augmented.data[pivotRow];
+                    augmented.data[pivotRow] = temp;
+                }
+
+                double pivot = augmented.data[i][i];
+                for (int j = 0; j < 2 * n; j++) {
+                    augmented.data[i][j] /= pivot;
+                }
+
+                for (int j = 0; j < n; j++) {
+                    if (j != i) {
+                        double factor = augmented.data[j][i];
+                        for (int k = 0; k < 2 * n; k++) {
+                            augmented.data[j][k] -=
+                                factor * augmented.data[i][k];
+                        }
+                    }
+                }
+            }
+
+            Matrix result(n, n);
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    result.data[i][j] = augmented.data[i][n + j];
+                }
+            }
+
+            return result;
+        };
+
         void transpose() {
             vector<vector<double>> result(this->col, vector<double>(this->row));
 
