@@ -6,7 +6,7 @@ Matrix forwardKinematics(vector<double>& lengths, vector<double>& angles) {
         throw invalid_argument("[ERROR] Data invalid");
     }
 
-    Matrix T_res = Matrix::identity(lengths.size());
+    Matrix T_res = Matrix::identity(3);
 
     for(int i = 0; i < lengths.size(); i++) {
         T_res = T_res * Matrix::homogeniousMatrix(lengths[i], angles[i]);
