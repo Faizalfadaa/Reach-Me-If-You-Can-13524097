@@ -11,6 +11,8 @@ class Matrix {
         int col;
 
     public:
+        Matrix(){};
+        
         Matrix(int row, int col) {
             this->data = vector<vector<double>>(row, vector<double>(col, 0.0));
             this->row = row;
