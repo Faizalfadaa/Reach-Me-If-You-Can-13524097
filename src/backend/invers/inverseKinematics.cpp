@@ -5,7 +5,6 @@
 using namespace std;
 
 const double DEGREE = 0.01;
-const double a = 0.01;
 
 // Compute Error vector
 Matrix error(Matrix target, Matrix endEffector) {
@@ -29,8 +28,29 @@ Matrix jacobianMatrix(vector<Matrix> derivatives) {
     return Matrix(jacobianData);
 };
 
+// Compute alpha for jacobian transpose
+double computeAlpha(Matrix J, Matrix errorPos) {
+    Matrix eT = errorPos;
+    eT.transpose();
 
-Matrix inverseKinematics(vector<double>& lengths, vector<double>& angles, Matrix target) {
+    Matrix JT = J;
+    JT.transpose();
+
+    Matrix JJT = J * JT;
+    Matrix JJTe = JJT * errorPos;
+
+    double numerator = errorPos.getData()[0][0] * JJTe.getData()[0][0] + errorPos.getData()[1][0] * JJTe.getData()[1][0];
+    double denominator = JJTe.getData()[0][0] * JJTe.getData()[0][0] + JJTe.getData()[1][0] * JJTe.getData()[1][0];
+
+    if(abs(denominator) < 1e-12) {
+        return 0.0;
+    }
+
+    return numerator / denominator;
+}
+
+// Inverse Kinematics Method : Jacobian transpose
+Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target) {
     // Get the End effector position using inverse kinematics
     vector<Matrix> derivatives;
     int jointCount = lengths.size();
@@ -64,6 +84,7 @@ Matrix inverseKinematics(vector<double>& lengths, vector<double>& angles, Matrix
         
         // Create the Jacobian Matrix 
         Matrix J = jacobianMatrix(derivatives);
+        double a = computeAlpha(J, errorPos);
         J.transpose();
 
         // Compute the suggested angular change for each joint using J Transpose × error
