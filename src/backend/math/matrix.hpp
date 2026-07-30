@@ -26,7 +26,7 @@ class Matrix {
         vector<vector<double>> getData() const {
             return this->data;
         }
-        
+
         int getColumn() const {
             return this->col;
         }
@@ -98,6 +98,6 @@ class Matrix {
         };
 
         static Matrix homogeniousMatrix(double length, double angle) {
-            return translation(length, 0.0) * rotation(angle);
+            return rotation(angle) * translation(length, 0.0);
         }
 };
