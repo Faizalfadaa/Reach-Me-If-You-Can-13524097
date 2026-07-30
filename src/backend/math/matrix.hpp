@@ -26,11 +26,7 @@ class Matrix {
         vector<vector<double>> getData() const {
             return this->data;
         }
-
-        vector<vector<double>> getValue() const {
-            return this->data;
-        }
-
+        
         int getColumn() const {
             return this->col;
         }
@@ -76,6 +72,14 @@ class Matrix {
             this->row = this->col;
             this->col = temp;
         };
+
+        static Matrix identity() {
+            return Matrix({
+                {1, 0, 0},
+                {0, 1, 0},
+                {0, 0, 1}
+            });
+        }
 
         static Matrix rotation(double angle) {
             return Matrix({
