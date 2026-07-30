@@ -5,6 +5,7 @@
 using namespace std;
 
 const double DEGREE = 0.01;
+const double LAMBDA = 0.5;
 
 // Compute Error vector
 Matrix error(Matrix target, Matrix endEffector) {
@@ -52,13 +53,11 @@ double computeAlpha(Matrix J, Matrix errorPos) {
 // Inverse Kinematics Method : Jacobian transpose
 Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target) {
     // Get the End effector position using inverse kinematics
-    vector<Matrix> derivatives;
     int jointCount = lengths.size();
+    vector<Matrix> derivatives(jointCount);
     bool found = false;
 
     while(!found) {
-
-
         // Get the end effector position
         Matrix endEffector = forwardKinematics(lengths, angles); 
 
@@ -83,6 +82,7 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
         };
         
         // Create the Jacobian Matrix 
+        // Using the Jacobian Transpose
         Matrix J = jacobianMatrix(derivatives);
         double a = computeAlpha(J, errorPos);
         J.transpose();
@@ -97,3 +97,66 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
         };
     }
 };
+
+// Inverse Kinematics improvement : DLS / LM 
+Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matrix target) {
+    // Get the End effector position using inverse kinematics
+    int jointCount = lengths.size();
+    vector<Matrix> derivatives(jointCount);
+    bool found = false;
+
+    while(!found) {
+        // Get the end effector position
+        Matrix endEffector = forwardKinematics(lengths, angles); 
+
+        // Compute the error from the end effector position to the target position
+        Matrix errorPos = error(target, endEffector);
+
+        for(int i = 0; i < jointCount; i++) {
+            Matrix endEffector = forwardKinematics(lengths, angles); 
+            angles[i] += DEGREE;
+
+            // Get the end-effector position after the small rotation
+            Matrix test = forwardKinematics(lengths, angles); 
+            angles[i] -= DEGREE;
+
+            // Approximate the partial derivative of the end effector position
+            // with respect to the current joint angle
+            Matrix difference = error(test, endEffector);
+            derivatives[i] = Matrix(vector<vector<double>>{
+                {difference.getData()[0][0] / DEGREE},
+                {difference.getData()[1][0] / DEGREE},
+            });
+        };
+        
+        // Create the Jacobian Matrix 
+        // Using Damped least Squares / Levenberg–Marquardt
+        Matrix J = jacobianMatrix(derivatives);
+        Matrix JT = J; JT.transpose();
+        Matrix JJT = J * JT;
+
+        double lambda2 = pow(LAMBDA, 2.0);
+        Matrix lambda2I = Matrix::identity(jointCount);
+
+        for(int i = 0; i < jointCount; i++) {
+            for(int j = 0; j < jointCount; j++) {
+                lambda2I.getData()[i][j] *= lambda2;
+            }
+        }
+
+        Matrix A(JJT.getRow(), JJT.getColumn());
+        for(int i = 0; i < JJT.getRow(); i++) {
+            for(int j = 0; j < JJT.getColumn(); j++) {
+                A.getData()[i][j] += lambda2I.getData()[i][j];
+            }
+        }
+
+        Matrix AInvers = A.inverse();
+        Matrix AInversE = AInvers * errorPos;
+
+        Matrix deltaTetha = JT * AInversE;
+        for (int i = 0; i < jointCount; i++) {
+            angles[i] += deltaTetha.getData()[i][0];
+        }
+    }    
+}
