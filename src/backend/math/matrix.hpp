@@ -75,12 +75,20 @@ class Matrix {
             this->col = temp;
         };
 
-        static Matrix identity() {
-            return Matrix({
-                {1, 0, 0},
-                {0, 1, 0},
-                {0, 0, 1}
-            });
+        static Matrix identity(int n) {
+            vector<vector<double>> I;
+            for(int i = 0; i < n; i++) {
+                vector<double> row = {};
+                for(int j = 0; j < n; j++) {
+                    if(i == j) {
+                        row.push_back(1.0);
+                    } else {
+                        row.push_back(0.0);
+                    }
+                }
+                I.push_back(row);
+            }
+            return Matrix(I);
         }
 
         static Matrix rotation(double angle) {
