@@ -25,7 +25,7 @@ class Matrix {
             this->col = data[0].size();
         };
 
-        vector<vector<double>> getData() const {
+        vector<vector<double>>& getData() {
             return this->data;
         }
 
