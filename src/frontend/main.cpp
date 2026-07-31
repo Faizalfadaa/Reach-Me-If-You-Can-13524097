@@ -21,6 +21,10 @@ int main() {
     bool minAngleEditMode[5] = {};
     bool maxAngleEditMode[5] = {};
 
+    // Target of the inverse kinematics
+    Vector2 target; 
+    bool hasTarget = false;
+
     // Initialize the GUI window
     InitWindow(screenWidth, screenHeight, "Reach Me If You Can");
     SetTargetFPS(60);
@@ -80,7 +84,8 @@ int main() {
 
         float jointSliderValue = jointCount;
         GuiSliderBar(Rectangle{86, panelY + 88, 120, 20}, nullptr, nullptr, &jointSliderValue, 2, 5);
-        jointCount = static_cast<int>(jointSliderValue + 0.5f);
+
+        jointCount = jointSliderValue + 0.5;
         DrawText(TextFormat("%d", jointCount), 230, panelY + 85, 22, Color{65, 68, 72, 255});
 
         // Right section bottom panel for segment input controls
@@ -146,6 +151,20 @@ int main() {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 765, rowY - 3, 70, 28})) {
                 maxAngleEditMode[i] = !maxAngleEditMode[i];
             }
+        }
+
+        // Input target position using click on canvas
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            Vector2 mousePosition = GetMousePosition();
+
+            if(mousePosition.y < canvasHeight) {
+                target = mousePosition;
+                hasTarget = true;
+            }
+        }
+
+        if(hasTarget) {
+            DrawCircleV(target, 13, Color{45, 48, 52, 255});
         }
 
         EndDrawing();
