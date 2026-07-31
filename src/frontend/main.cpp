@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <cmath>
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -7,6 +8,7 @@ int main() {
     const int screenWidth = 1200;
     const int screenHeight = 900;
     const int panelHeight = 350;
+    const int canvasHeight = screenHeight - panelHeight;
 
     // Main GUI inputs required by the task
     int jointCount = 2;
@@ -15,7 +17,6 @@ int main() {
     int minAngles[5] = {-180, -180, -180, -180, -180};
     int maxAngles[5] = {180, 180, 180, 180, 180};
 
-    // Edit mode flags for raygui value boxes
     bool lengthEditMode[5] = {};
     bool minAngleEditMode[5] = {};
     bool maxAngleEditMode[5] = {};
@@ -28,8 +29,36 @@ int main() {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+        // Visualization of the joint segments
+        Vector2 jointPositions[6] = {};
+
+        // Initialize the first joint segment
+        jointPositions[0] = Vector2{screenWidth * 0.5, canvasHeight - 70};
+
+        float totalAngle = 0;
+
+        // For each joint segment, update every position of the joint using polar to cartesian formula
+        for (int i = 0; i < jointCount; i++) {
+            totalAngle += jointAngles[i] * DEG2RAD;
+            jointPositions[i + 1] = Vector2{
+                jointPositions[i].x + cos(totalAngle) * segmentLengths[i],
+                jointPositions[i].y + sin(totalAngle) * segmentLengths[i]
+            };
+        }
+
+        for (int i = 0; i < jointCount; i++) {
+            // Segment body
+            DrawLineEx(jointPositions[i], jointPositions[i + 1], 10, Color{82, 135, 184, 255});
+
+            // Joint on the start of each segment
+            DrawCircleV(jointPositions[i], 13, Color{45, 48, 52, 255});
+        }
+
+        // End effector marker
+        DrawCircleV(jointPositions[jointCount], 13, Color{210, 72, 72, 255});
+
         // Bottom panel
-        Rectangle bottomPanel = {0, (screenHeight - panelHeight), (screenWidth), (panelHeight)};
+        Rectangle bottomPanel = {0, canvasHeight, screenWidth, panelHeight};
 
         // Bottom panel background and outline
         DrawRectangleRec(bottomPanel, Color{230, 235, 240, 255});
