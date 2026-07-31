@@ -163,7 +163,8 @@ int main() {
             }
         }
 
-        if(hasTarget) {
+        if (hasTarget) {
+            DrawText(TextFormat("(%.0f, %.0f)", target.x, target.y), target.x - 38, target.y - 32, 18, Color{45, 48, 52, 255});
             DrawCircleV(target, 13, Color{45, 48, 52, 255});
         }
 
