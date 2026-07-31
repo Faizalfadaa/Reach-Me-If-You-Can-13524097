@@ -62,9 +62,7 @@ class Matrix {
 
         Matrix inverse() const {
             if (this->row != this->col) {
-                throw invalid_argument(
-                    "[ERROR] Matrix is not square"
-                );
+                throw invalid_argument("[ERROR] Matrix is not square");
             }
 
             int n = this->row;
@@ -82,7 +80,7 @@ class Matrix {
             for (int i = 0; i < n; i++) {
                 int pivotRow = i;
                 for (int j = i + 1; j < n; j++) {
-                    if ((augmented.data[j][i]) > (augmented.data[pivotRow][i])) {
+                    if (fabs(augmented.data[j][i]) > fabs(augmented.data[pivotRow][i])) {
                         pivotRow = j;
                     }
                 }
@@ -106,8 +104,7 @@ class Matrix {
                     if (j != i) {
                         double factor = augmented.data[j][i];
                         for (int k = 0; k < 2 * n; k++) {
-                            augmented.data[j][k] -=
-                                factor * augmented.data[i][k];
+                            augmented.data[j][k] -= factor * augmented.data[i][k];
                         }
                     }
                 }
