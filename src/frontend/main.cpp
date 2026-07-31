@@ -8,8 +8,17 @@ int main() {
     const int screenHeight = 900;
     const int panelHeight = 350;
 
+    // Main GUI inputs required by the task
     int jointCount = 2;
-    float segmentLengths[5] = {120.0f, 90.0f, 80.0f, 70.0f, 60.0f};
+    int segmentLengths[5] = {120, 90, 80, 70, 60};
+    float jointAngles[5] = {0, 0, 0, 0, 0};
+    int minAngles[5] = {-180, -180, -180, -180, -180};
+    int maxAngles[5] = {180, 180, 180, 180, 180};
+
+    // Edit mode flags for raygui value boxes
+    bool lengthEditMode[5] = {};
+    bool minAngleEditMode[5] = {};
+    bool maxAngleEditMode[5] = {};
 
     // Initialize the GUI window
     InitWindow(screenWidth, screenHeight, "Reach Me If You Can");
@@ -42,21 +51,72 @@ int main() {
 
         float jointSliderValue = jointCount;
         GuiSliderBar(Rectangle{86, panelY + 88, 120, 20}, nullptr, nullptr, &jointSliderValue, 2, 5);
-        jointCount = jointSliderValue + 0.5;
+        jointCount = static_cast<int>(jointSliderValue + 0.5f);
         DrawText(TextFormat("%d", jointCount), 230, panelY + 85, 22, Color{65, 68, 72, 255});
 
-        // Right section bottom panel for segment length controls
-        DrawText("Panjang Segmen", (dividerX + padding), (panelY + 22), 28, Color{45, 48, 52, 255});
+        // Right section bottom panel for segment input controls
+        DrawText("Input Segmen", dividerX + padding, panelY + 22, 28, Color{45, 48, 52, 255});
         DrawLineEx(Vector2{dividerX + padding, panelY + 58}, Vector2{dividerX + padding + 230, panelY + 58}, 2, Color{45, 48, 52, 255});
+        DrawText("Panjang", dividerX + 150, panelY + 80, 16, Color{65, 68, 72, 255});
+        DrawText("Sudut Awal", dividerX + 260, panelY + 80, 16, Color{65, 68, 72, 255});
+        DrawText("Min", dividerX + 665, panelY + 80, 16, Color{65, 68, 72, 255});
+        DrawText("Max", dividerX + 765, panelY + 80, 16, Color{65, 68, 72, 255});
 
         // Segment rows shown according to current joint count
         for (int i = 0; i < jointCount; i++) {
-            const float rowY = panelY + 82 + i * 50;
+            const float rowY = panelY + 110 + i * 46;
 
-            DrawText(TextFormat("Segmen %d", i + 1), (dividerX + padding), (rowY), 24, Color{45, 48, 52, 255});
-            DrawText(TextFormat("%.1f", segmentLengths[i]), (dividerX + 210), (rowY + 3), 20, Color{65, 68, 72, 255});
+            // Clamp user inputs to valid ranges before drawing controls
+            if (segmentLengths[i] < 10) {
+                segmentLengths[i] = 10;
+            }
 
-            GuiSliderBar(Rectangle{dividerX + 285, rowY + 7, 430, 20}, nullptr, nullptr, &segmentLengths[i], 10, 250);
+            if (segmentLengths[i] > 250) {
+                segmentLengths[i] = 250;
+            }
+
+            if (minAngles[i] < -180) {
+                minAngles[i] = -180;
+            }
+
+            if (maxAngles[i] > 180) {
+                maxAngles[i] = 180;
+            }
+
+            if (minAngles[i] > maxAngles[i]) {
+                minAngles[i] = maxAngles[i];
+            }
+
+            if (jointAngles[i] < minAngles[i]) {
+                jointAngles[i] = minAngles[i];
+            }
+
+            if (jointAngles[i] > maxAngles[i]) {
+                jointAngles[i] = maxAngles[i];
+            }
+
+            // Segment label and length input
+            DrawText(TextFormat("Segmen %d", i + 1), (dividerX + padding), (rowY), 22, Color{45, 48, 52, 255});
+            GuiValueBox(Rectangle{dividerX + 150, rowY - 3, 78, 28}, nullptr, &segmentLengths[i], 10, 250, lengthEditMode[i]);
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 150, rowY - 3, 78, 28})) {
+                lengthEditMode[i] = !lengthEditMode[i];
+            }
+
+            // Joint angle input that is constrained by min and max angle
+            DrawText(TextFormat("%.0f", jointAngles[i]), dividerX + 250, rowY + 3, 18, Color{65, 68, 72, 255});
+            GuiSliderBar(Rectangle{dividerX + 300, rowY + 4, 320, 20}, nullptr, nullptr, &jointAngles[i], minAngles[i], maxAngles[i]);
+
+            // Minimum angle constraint input
+            GuiValueBox(Rectangle{dividerX + 665, rowY - 3, 70, 28}, nullptr, &minAngles[i], -180, maxAngles[i], minAngleEditMode[i]);
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 665, rowY - 3, 70, 28})) {
+                minAngleEditMode[i] = !minAngleEditMode[i];
+            }
+
+            // Maximum angle constraint input
+            GuiValueBox(Rectangle{dividerX + 765, rowY - 3, 70, 28}, nullptr, &maxAngles[i], minAngles[i], 180, maxAngleEditMode[i]);
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 765, rowY - 3, 70, 28})) {
+                maxAngleEditMode[i] = !maxAngleEditMode[i];
+            }
         }
 
         EndDrawing();
