@@ -1,6 +1,7 @@
 #include "iostream"
 #include "vector"
 #include "forward\forwardKinematics.cpp"
+#include "IKResult.hpp"
 
 using namespace std;
 
@@ -53,12 +54,15 @@ double computeAlpha(Matrix J, Matrix errorPos) {
 }
 
 // Inverse Kinematics Method : Jacobian transpose
-Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target) {
+vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target) {
     // Get the End effector position using inverse kinematics
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
     bool found = false;
     int iteration = 0;
+
+    // Result data stored in vector of IKResult
+    vector<IKResult> result;
 
     while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
@@ -66,6 +70,14 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
 
         // Compute the error from the end effector position to the target position
         Matrix errorPos = error(target, endEffector);
+
+        // Insert the result for each iteratiom
+        IKResult currentResult;
+        currentResult.angles = angles;
+        currentResult.endEffector = endEffector;
+        currentResult.error = errorPos;
+
+        result.push_back(currentResult);
 
         for(int i = 0; i < jointCount; i++) {
             Matrix endEffector = forwardKinematics(lengths, angles); 
@@ -106,15 +118,20 @@ Matrix jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix
 
         iteration++;
     }
+
+    return result;
 };
 
 // Inverse Kinematics improvement : DLS / LM 
-Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matrix target) {
+vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matrix target) {
     // Get the End effector position using inverse kinematics
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
     int iteration = 0;
     bool found = false;
+
+    // Result data stored in vector of IKResult
+    vector<IKResult> result;
 
     while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
@@ -122,6 +139,14 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
 
         // Compute the error from the end effector position to the target position
         Matrix errorPos = error(target, endEffector);
+
+        // Insert the result for each iteratiom
+        IKResult currentResult;
+        currentResult.angles = angles;
+        currentResult.endEffector = endEffector;
+        currentResult.error = errorPos;
+
+        result.push_back(currentResult);
 
         for(int i = 0; i < jointCount; i++) {
             Matrix endEffector = forwardKinematics(lengths, angles); 
@@ -177,4 +202,6 @@ Matrix DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matri
 
         iteration++;
     }    
+
+    return result;
 }
