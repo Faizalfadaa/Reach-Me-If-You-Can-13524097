@@ -5,10 +5,15 @@
 
 using namespace std;
 
+#define PI 3.14159265358979323846f
+#define DEG2RAD (PI/180.0f) 
+
 const double DEGREE = 0.01;
-const double LAMBDA = 0.5;
+const double MAX_LAMBDA = 5.0;
+const double MIN_LAMBDA = 2.0;
+const double MAX_DELTA_TETHA = 4.0 * DEG2RAD;
 const int MAX_ITERATION = 1000;
-const double TOLERANCE = 1e-3;
+const double TOLERANCE = 1.0;
 
 // Compute Error vector
 Matriks error(Matriks target, Matriks endEffector) {
@@ -190,7 +195,19 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
         Matriks JT = J; JT.transpose();
         Matriks JJT = J * JT;
 
-        double lambda2 = pow(LAMBDA, 2.0);
+        // Check near singularity using the determinant of J * J transpose
+        double determinant = JJT.getData()[0][0] * JJT.getData()[1][1] - JJT.getData()[1][0] * JJT.getData()[0][1];
+        
+        // Use adaptive lambda depends on the singularity
+        double lambda;
+        if (sqrt(abs(determinant)) < 100.0) {
+            // Increase the lamda value if its near singularity 
+            lambda = MAX_LAMBDA;
+        } else {
+            lambda = MIN_LAMBDA;
+        }
+
+        double lambda2 = pow(lambda, 2.0);
         Matriks lambda2I = Matriks::identity(JJT.getRow());
 
         for(int i = 0; i < lambda2I.getRow(); i++) {
