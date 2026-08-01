@@ -1,3 +1,6 @@
+#ifndef MATRIX_HPP
+#define MATRIX_HPP
+
 #include "iostream"
 #include "vector"
 #include "cmath"
@@ -171,3 +174,5 @@ class Matrix {
             return rotation(angle) * translation(length, 0.0);
         }
 };
+
+#endif
