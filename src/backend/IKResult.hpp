@@ -8,8 +8,8 @@ using namespace std;
 
 struct IKResult {
     vector<double> angles;
-    Matrix endEffector;
-    Matrix error;
+    Matriks endEffector;
+    Matriks error;
 };
 
 #endif

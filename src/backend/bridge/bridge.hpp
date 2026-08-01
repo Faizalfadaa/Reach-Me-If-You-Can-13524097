@@ -10,15 +10,15 @@
 using namespace std;
 
 // Convert a GUI screen point into backend math coordinates
-Matrix convertTarget(float targetX, float targetY, float baseX, float baseY) {
-    return Matrix(vector<vector<double>>{
+Matriks convertTarget(float targetX, float targetY, float baseX, float baseY) {
+    return Matriks(vector<vector<double>>{
         {targetX - baseX},
         {baseY - targetY}
     });
 }
 
 // Convert a backend math point back into GUI coordinates
-vector<double> convertToScreenPosition(Matrix point, float baseX, float baseY) {
+vector<double> convertToScreenPosition(Matriks point, float baseX, float baseY) {
     return {
         (float)(baseX + point.getData()[0][0]),
         (float)(baseY - point.getData()[1][0])

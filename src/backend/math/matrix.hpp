@@ -1,5 +1,5 @@
-#ifndef MATRIX_HPP
-#define MATRIX_HPP
+#ifndef MATRIKS_HPP
+#define MATRIKS_HPP
 
 #include "iostream"
 #include "vector"
@@ -7,22 +7,22 @@
 #include "stdexcept"
 using namespace std;
 
-class Matrix {
+class Matriks {
     private:
         vector<vector<double>> data;
         int row;
         int col;
 
     public:
-        Matrix(){};
+        Matriks(){};
         
-        Matrix(int row, int col) {
+        Matriks(int row, int col) {
             this->data = vector<vector<double>>(row, vector<double>(col, 0.0));
             this->row = row;
             this->col = col;
         };
 
-        Matrix(const vector<vector<double>>& data) {
+        Matriks(const vector<vector<double>>& data) {
             this->data = data;
             this->row = data.size();
             this->col = data[0].size();
@@ -40,7 +40,7 @@ class Matrix {
             return this->row;
         }
 
-        Matrix operator*(const Matrix& other) const {
+        Matriks operator*(const Matriks& other) const {
             int leftRows = this->row;
             int leftColumns = this->col;
             int rightRows = other.getRow();
@@ -50,7 +50,7 @@ class Matrix {
                 throw invalid_argument("[ERROR] Dimensions are incompatible for multiplication");
             }
 
-            Matrix result(leftRows, rightColumns);
+            Matriks result(leftRows, rightColumns);
 
             for (int row = 0; row < leftRows; row++) {
                 for (int column = 0; column < rightColumns; column++) {
@@ -63,13 +63,13 @@ class Matrix {
             return result;
         }
 
-        Matrix inverse() const {
+        Matriks inverse() const {
             if (this->row != this->col) {
-                throw invalid_argument("[ERROR] Matrix is not square");
+                throw invalid_argument("[ERROR] Matriks is not square");
             }
 
             int n = this->row;
-            Matrix augmented(n, 2 * n);
+            Matriks augmented(n, 2 * n);
 
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
@@ -89,7 +89,7 @@ class Matrix {
                 }
 
                 if (fabs(augmented.data[pivotRow][i]) < 1e-12) {
-                    throw invalid_argument("[ERROR] Matrix is singular");
+                    throw invalid_argument("[ERROR] Matriks is singular");
                 }
 
                 if (pivotRow != i) {
@@ -113,7 +113,7 @@ class Matrix {
                 }
             }
 
-            Matrix result(n, n);
+            Matriks result(n, n);
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
                     result.data[i][j] = augmented.data[i][n + j];
@@ -138,7 +138,7 @@ class Matrix {
             this->col = temp;
         };
 
-        static Matrix identity(int n) {
+        static Matriks identity(int n) {
             vector<vector<double>> I;
             for(int i = 0; i < n; i++) {
                 vector<double> row = {};
@@ -151,26 +151,26 @@ class Matrix {
                 }
                 I.push_back(row);
             }
-            return Matrix(I);
+            return Matriks(I);
         }
 
-        static Matrix rotation(double angle) {
-            return Matrix({
+        static Matriks rotation(double angle) {
+            return Matriks({
                 {cos(angle), -sin(angle), 0},
                 {sin(angle), cos(angle), 0},
                 {0, 0, 1}
             });
         };
 
-        static Matrix translation(double x, double y) {
-            return Matrix({
+        static Matriks translation(double x, double y) {
+            return Matriks({
                 {1, 0, x},
                 {0, 1, y},
                 {0, 0, 1}
             });
         };
 
-        static Matrix homogeniousMatrix(double length, double angle) {
+        static Matriks homogeniousMatriks(double length, double angle) {
             return rotation(angle) * translation(length, 0.0);
         }
 };
