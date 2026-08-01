@@ -1,25 +1,27 @@
 #ifndef BRIDGE_HPP
 #define BRIDGE_HPP
 
-#include "raylib.h"
 #include "math/matrix.hpp"
 #include "vector"
+
+#define PI 3.14159265358979323846f
+#define DEG2RAD (PI/180.0f) 
 
 using namespace std;
 
 // Convert a GUI screen point into backend math coordinates
-Matrix convertTarget(Vector2 target, Vector2 base) {
+Matrix convertTarget(float targetX, float targetY, float baseX, float baseY) {
     return Matrix(vector<vector<double>>{
-        {target.x - base.x},
-        {base.y - target.y}
+        {targetX - baseX},
+        {baseY - targetY}
     });
 }
 
 // Convert a backend math point back into GUI coordinates
-Vector2 convertToScreenPosition(Matrix point, Vector2 base) {
-    return Vector2{
-        (float)(base.x + point.getData()[0][0]),
-        (float)(base.y - point.getData()[1][0])
+vector<double> convertToScreenPosition(Matrix point, float baseX, float baseY) {
+    return {
+        (float)(baseX + point.getData()[0][0]),
+        (float)(baseY - point.getData()[1][0])
     };
 }
 
