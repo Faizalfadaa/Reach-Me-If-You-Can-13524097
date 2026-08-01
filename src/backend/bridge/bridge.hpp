@@ -45,4 +45,26 @@ vector<double> convertAngles(float angles[5], int jointCount) {
     return newAngles;
 }
 
+// Convert min angles data from GUI to backend
+vector<double> convertMinAngles(int minAngles[5], int jointCount) {
+    vector<double> newMinAngles;
+
+    for(int i = 0; i < jointCount; i++) {
+        newMinAngles.push_back(minAngles[i] * DEG2RAD);
+    }
+
+    return newMinAngles;
+}
+
+// Convert min angles data from GUI to backend
+vector<double> convertMaxAngles(int maxAngles[5], int jointCount) {
+    vector<double> newMaxAngles;
+
+    for(int i = 0; i < jointCount; i++) {
+        newMaxAngles.push_back(maxAngles[i] * DEG2RAD);
+    }
+
+    return newMaxAngles;
+}
+
 #endif

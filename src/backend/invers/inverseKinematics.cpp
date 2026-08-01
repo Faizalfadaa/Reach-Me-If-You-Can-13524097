@@ -54,7 +54,12 @@ double computeAlpha(Matrix J, Matrix errorPos) {
 }
 
 // Inverse Kinematics Method : Jacobian transpose
-vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target) {
+vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matrix target, vector<double>& minAngles, vector<double>& maxAngles) {
+    // Check if data invalid or not
+    if (lengths.size() != angles.size() || angles.size() != minAngles.size() || angles.size() != maxAngles.size()) {
+        throw invalid_argument("[ERROR] Data invalid");
+    }
+
     // Get the End effector position using inverse kinematics
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
@@ -109,6 +114,15 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
         // Update each angle using step size (a)
         for(int i = 0; i < jointCount; i++) {
             angles[i] += a * (change.getData()[i][0]);
+            
+            // Constraint the angles
+            if (angles[i] < minAngles[i]){
+                angles[i] = minAngles[i];
+            }
+
+            if (angles[i] > maxAngles[i]){
+                angles[i] = maxAngles[i];
+            }
         };
 
         double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
@@ -123,7 +137,12 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
 };
 
 // Inverse Kinematics improvement : DLS / LM 
-vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matrix target) {
+vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matrix target, vector<double>& minAngles, vector<double>& maxAngles) {
+    // Check if data invalid or not
+    if (lengths.size() != angles.size() || angles.size() != minAngles.size() || angles.size() != maxAngles.size()) {
+        throw invalid_argument("[ERROR] Data invalid");
+    }
+    
     // Get the End effector position using inverse kinematics
     int jointCount = lengths.size();
     vector<Matrix> derivatives(jointCount);
@@ -193,6 +212,15 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
         Matrix deltaTetha = JT * AInversE;
         for (int i = 0; i < jointCount; i++) {
             angles[i] += deltaTetha.getData()[i][0];
+
+            // Constraint the angles
+            if (angles[i] < minAngles[i]){
+                angles[i] = minAngles[i];
+            }
+
+            if (angles[i] > maxAngles[i]){
+                angles[i] = maxAngles[i];
+            }
         }
 
         double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
