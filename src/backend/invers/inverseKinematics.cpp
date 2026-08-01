@@ -11,7 +11,7 @@ using namespace std;
 const double DEGREE = 0.01;
 const double MAX_LAMBDA = 5.0;
 const double MIN_LAMBDA = 2.0;
-const double MAX_DELTA_TETHA = 4.0 * DEG2RAD;
+const double MAX_DELTA_TETHA = 3.5 * DEG2RAD;
 const int MAX_ITERATION = 1000;
 const double TOLERANCE = 1.0;
 
@@ -228,6 +228,15 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
 
         Matriks deltaTetha = JT * AInversE;
         for (int i = 0; i < jointCount; i++) {
+            // Clamp delta tetha so it doesnt rotate extremely
+            if (deltaTetha.getData()[i][0] > MAX_DELTA_TETHA) {
+                deltaTetha.getData()[i][0] = MAX_DELTA_TETHA;
+            }
+            
+            if (deltaTetha.getData()[i][0] < -MAX_DELTA_TETHA) {
+                deltaTetha.getData()[i][0] = - MAX_DELTA_TETHA;
+            }
+
             angles[i] += deltaTetha.getData()[i][0];
 
             // Constraint the angles
