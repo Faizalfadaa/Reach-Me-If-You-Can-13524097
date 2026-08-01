@@ -1,7 +1,7 @@
 #ifndef BRIDGE_HPP
 #define BRIDGE_HPP
 
-#include "math/matrix.hpp"
+#include "../math/matrix.hpp"
 #include "vector"
 
 #define PI 3.14159265358979323846f
