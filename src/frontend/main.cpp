@@ -1,5 +1,6 @@
 #include "raylib.h"
-#include <cmath>
+#include "cmath"
+#include "invers\inverseKinematics.cpp"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -14,6 +15,7 @@ int main() {
     int jointCount = 2;
     int segmentLengths[5] = {120, 90, 80, 70, 60};
     float jointAngles[5] = {0, 0, 0, 0, 0};
+    Vector2 jointPositions[6] = {};
     int minAngles[5] = {-180, -180, -180, -180, -180};
     int maxAngles[5] = {180, 180, 180, 180, 180};
 
@@ -25,6 +27,9 @@ int main() {
     Vector2 target; 
     bool hasTarget = false;
 
+    // Inverse Kinematics data
+    vector<IKResult> ikResult;
+
     // Initialize the GUI window
     InitWindow(screenWidth, screenHeight, "Reach Me If You Can");
     SetTargetFPS(60);
@@ -33,11 +38,9 @@ int main() {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        // Visualization of the joint segments
-        Vector2 jointPositions[6] = {};
-
         // Initialize the first joint segment
         jointPositions[0] = Vector2{screenWidth * 0.5, canvasHeight - 70};
+        Vector2 basePosition = jointPositions[0];
 
         float totalAngle = 0;
 
@@ -46,7 +49,7 @@ int main() {
             totalAngle += jointAngles[i] * DEG2RAD;
             jointPositions[i + 1] = Vector2{
                 jointPositions[i].x + cos(totalAngle) * segmentLengths[i],
-                jointPositions[i].y + sin(totalAngle) * segmentLengths[i]
+                jointPositions[i].y - sin(totalAngle) * segmentLengths[i]
             };
         }
 
@@ -157,14 +160,17 @@ int main() {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mousePosition = GetMousePosition();
 
-            if(mousePosition.y < canvasHeight) {
+            if (mousePosition.y < canvasHeight) {
                 target = mousePosition;
                 hasTarget = true;
             }
         }
 
         if (hasTarget) {
-            DrawText(TextFormat("(%.0f, %.0f)", target.x, target.y), target.x - 38, target.y - 32, 18, Color{45, 48, 52, 255});
+            float targetBackendX = target.x - basePosition.x;
+            float targetBackendY = basePosition.y - target.y;
+
+            DrawText(TextFormat("(%.0f, %.0f)", targetBackendX, targetBackendY), target.x - 38, target.y - 32, 18, Color{45, 48, 52, 255});
             DrawCircleV(target, 13, Color{45, 48, 52, 255});
         }
 
