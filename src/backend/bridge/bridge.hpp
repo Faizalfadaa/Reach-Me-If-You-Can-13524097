@@ -2,12 +2,19 @@
 #define BRIDGE_HPP
 
 #include "../math/matrix.hpp"
+#include "../frontend/circle.cpp"
 #include "vector"
 
 #define PI 3.14159265358979323846f
 #define DEG2RAD (PI/180.0f) 
 
 using namespace std;
+
+struct Obstacle {
+    double x;
+    double y;
+    double radius;
+};
 
 // Convert a GUI screen point into backend math coordinates
 Matriks convertTarget(float targetX, float targetY, float baseX, float baseY) {
@@ -67,6 +74,22 @@ vector<double> convertMaxAngles(int maxAngles[5], int jointCount) {
     }
 
     return newMaxAngles;
+}
+
+// Covert Circle data into Obstacle for backend
+vector<Obstacle> convertCircles(vector<Circle>& obstacles) {
+    vector<Obstacle> objects;
+
+    for(int i = 0; i < obstacles.size(); i++) {
+        Obstacle object;
+        object.x = obstacles[i].center.x;
+        object.y = obstacles[i].center.y;
+        object.radius = obstacles[i].radius;
+
+        objects.push_back(object);
+    }
+
+    return objects;
 }
 
 #endif
