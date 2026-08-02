@@ -2,7 +2,7 @@
 #define BRIDGE_HPP
 
 #include "../math/matrix.hpp"
-#include "../frontend/circle.cpp"
+#include "../../frontend/circle.cpp"
 #include "vector"
 
 #define PI 3.14159265358979323846f
@@ -77,13 +77,13 @@ vector<double> convertMaxAngles(int maxAngles[5], int jointCount) {
 }
 
 // Covert Circle data into Obstacle for backend
-vector<Obstacle> convertCircles(vector<Circle>& obstacles) {
+vector<Obstacle> convertCircles(vector<Circle>& obstacles, float baseX, float baseY) {
     vector<Obstacle> objects;
 
     for(int i = 0; i < obstacles.size(); i++) {
         Obstacle object;
-        object.x = obstacles[i].center.x;
-        object.y = obstacles[i].center.y;
+        object.x = obstacles[i].center.x - baseX;
+        object.y = baseY - obstacles[i].center.y;
         object.radius = obstacles[i].radius;
 
         objects.push_back(object);

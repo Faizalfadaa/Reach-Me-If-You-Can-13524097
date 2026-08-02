@@ -149,9 +149,10 @@ int main() {
                 vector<double> convertedAngles = convertAngles(jointAngles, jointCount);
                 vector<double> convertedMinAngles = convertMinAngles(minAngles, jointCount);
                 vector<double> convertedMaxAngles = convertMaxAngles(maxAngles, jointCount);
+                vector<Obstacle> convertedObstacles = convertCircles(obstacles, basePosition.x, basePosition.y);
 
                 // Start the inverse kinematics
-                ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles);
+                ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles, convertedObstacles);
                 
                 // Start the animation
                 animationFrame = 0;
