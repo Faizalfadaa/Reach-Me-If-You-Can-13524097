@@ -2,6 +2,7 @@
 #include "cmath"
 #include "../backend/invers/inverseKinematics.cpp"
 #include "../backend/bridge/bridge.hpp"
+#include "circle.cpp"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -28,6 +29,11 @@ int main() {
     // Target of the inverse kinematics
     Vector2 target; 
     bool hasTarget = false;
+
+    // Circle obstacles
+    vector<Circle> obstacles;
+    Vector2 circleTarget;
+    bool isObjectButtonClicked = false;
 
     // Inverse Kinematics data
     vector<IKResult> ikResult;
@@ -82,6 +88,11 @@ int main() {
                 jointPositions[i].x + cos(totalAngle) * segmentLengths[i],
                 jointPositions[i].y - sin(totalAngle) * segmentLengths[i]
             };
+        }
+
+        // Draw every circle obstacle
+        for (int i = 0; i < obstacles.size(); i++) {
+            drawCircleObject(obstacles[i]);
         }
 
         for (int i = 0; i < jointCount; i++) {
@@ -149,6 +160,11 @@ int main() {
             }
         }
 
+        // Button to add a new circle obstacle
+        if (GuiButton(Rectangle{176, panelY + 290, 90, 34}, "ADD OBJECT")) {
+            isObjectButtonClicked = true;
+        }
+
         // Segment rows shown according to current joint count
         for (int i = 0; i < jointCount; i++) {
             const float rowY = panelY + 110 + i * 46;
@@ -209,13 +225,27 @@ int main() {
         // Input target position using click on canvas
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mousePosition = GetMousePosition();
+            bool isTargetInsideObstacle = false;
 
-            if (mousePosition.y < canvasHeight) {
+            // Check every object if we put the target inside the obstacle
+            for (int i = 0; i < obstacles.size(); i++) {
+                if (isPointInsideCircle(mousePosition, obstacles[i])) {
+                    isTargetInsideObstacle = true;
+                }
+            }
+
+            if(mousePosition.y < canvasHeight && !isTargetInsideObstacle && isObjectButtonClicked) {
+                circleTarget = mousePosition;
+                isObjectButtonClicked = false;
+                obstacles.push_back(Circle{circleTarget, 45});
+
+            } else if (mousePosition.y < canvasHeight && !isTargetInsideObstacle && !isObjectButtonClicked) {
                 target = mousePosition;
                 hasTarget = true;
             }
         }
 
+        // Draw the target point
         if (hasTarget) {
             float targetBackendX = target.x - basePosition.x;
             float targetBackendY = basePosition.y - target.y;
