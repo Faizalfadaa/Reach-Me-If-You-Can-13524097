@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "cmath"
-#include "invers\inverseKinematics.cpp"
+#include "../backend/invers/inverseKinematics.cpp"
+#include "../backend/bridge/bridge.hpp"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -10,6 +11,7 @@ int main() {
     const int screenHeight = 900;
     const int panelHeight = 350;
     const int canvasHeight = screenHeight - panelHeight;
+    const int animationDelay = 10;
 
     // Main GUI inputs required by the task
     int jointCount = 2;
@@ -30,6 +32,11 @@ int main() {
     // Inverse Kinematics data
     vector<IKResult> ikResult;
 
+    // for animation purposes
+    bool isRunning = false;
+    int animationFrame = 0;
+    int animationDelayCounter = 0;
+
     // Initialize the GUI window
     InitWindow(screenWidth, screenHeight, "Reach Me If You Can");
     SetTargetFPS(60);
@@ -42,11 +49,35 @@ int main() {
         jointPositions[0] = Vector2{screenWidth * 0.5, canvasHeight - 70};
         Vector2 basePosition = jointPositions[0];
 
+        float displayAngles[5] = {};
+        for (int i = 0; i < jointCount; i++) {
+            displayAngles[i] = jointAngles[i];
+        }
+
+        // When animation is running, draw the current IK iteration result
+        if (isRunning && !ikResult.empty()) {
+            if (animationFrame >= ikResult.size()) {
+                animationFrame = ikResult.size() - 1;
+                isRunning = false;
+            }
+
+            int resultAngleCount = ikResult[animationFrame].angles.size();
+            for (int i = 0; i < jointCount && i < resultAngleCount; i++) {
+                displayAngles[i] = ikResult[animationFrame].angles[i] / DEG2RAD;
+            }
+
+            animationDelayCounter++;
+            if (animationDelayCounter >= animationDelay) {
+                animationDelayCounter = 0;
+                animationFrame++;
+            }
+        }
+
         float totalAngle = 0;
 
         // For each joint segment, update every position of the joint using polar to cartesian formula
         for (int i = 0; i < jointCount; i++) {
-            totalAngle += jointAngles[i] * DEG2RAD;
+            totalAngle += displayAngles[i] * DEG2RAD;
             jointPositions[i + 1] = Vector2{
                 jointPositions[i].x + cos(totalAngle) * segmentLengths[i],
                 jointPositions[i].y - sin(totalAngle) * segmentLengths[i]
@@ -98,6 +129,25 @@ int main() {
         DrawText("Sudut Awal", dividerX + 260, panelY + 80, 16, Color{65, 68, 72, 255});
         DrawText("Min", dividerX + 665, panelY + 80, 16, Color{65, 68, 72, 255});
         DrawText("Max", dividerX + 765, panelY + 80, 16, Color{65, 68, 72, 255});
+        
+        // Button to start the inverse kinematics
+        if (GuiButton(Rectangle{36, panelY + 290, 130, 34}, "START")) {
+            if(hasTarget) {
+                Matriks convertedTarget = convertTarget(target.x, target.y, basePosition.x, basePosition.y);
+                vector<double> convertedLengths = convertLengths(segmentLengths, jointCount);
+                vector<double> convertedAngles = convertAngles(jointAngles, jointCount);
+                vector<double> convertedMinAngles = convertMinAngles(minAngles, jointCount);
+                vector<double> convertedMaxAngles = convertMaxAngles(maxAngles, jointCount);
+
+                // Start the inverse kinematics
+                ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles);
+                
+                // Start the animation
+                animationFrame = 0;
+                animationDelayCounter = 0;
+                isRunning = !ikResult.empty();
+            }
+        }
 
         // Segment rows shown according to current joint count
         for (int i = 0; i < jointCount; i++) {
