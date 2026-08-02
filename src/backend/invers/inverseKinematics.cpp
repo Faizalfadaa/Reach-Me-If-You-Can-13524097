@@ -2,12 +2,14 @@
 #include "vector"
 #include "../forward/forwardKinematics.cpp"
 #include "../IKResult.hpp"
+#include "../bridge/bridge.hpp"
 
 using namespace std;
 
 #define PI 3.14159265358979323846f
 #define DEG2RAD (PI/180.0f) 
 
+// Constants declarations
 const double DEGREE = 0.01;
 const double MAX_LAMBDA = 5.0;
 const double MIN_LAMBDA = 2.0;
@@ -36,6 +38,32 @@ Matriks jacobianMatriks(vector<Matriks> derivatives) {
 
     return Matriks(jacobianData);
 };
+
+// Get all joint positions coordinates
+vector<Matriks> getJointPositions(vector<double>& lengths, vector<double>& angles) {
+    vector<Matriks> jointPositions;
+    double x = 0.0;
+    double y = 0.0;
+    double totalAngle = 0.0;
+
+    jointPositions.push_back(Matriks(vector<vector<double>>{
+        {x},
+        {y}
+    }));
+
+    for (int i = 0; i < lengths.size(); i++) {
+        totalAngle += angles[i];
+        x += cos(totalAngle) * lengths[i];
+        y += sin(totalAngle) * lengths[i];
+
+        jointPositions.push_back(Matriks(vector<vector<double>>{
+            {x},
+            {y}
+        }));
+    }
+
+    return jointPositions;
+}
 
 // Compute alpha for jacobian transpose
 double computeAlpha(Matriks J, Matriks errorPos) {
@@ -141,8 +169,8 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
     return result;
 };
 
-// Inverse Kinematics improvement : DLS / LM 
-vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matriks target, vector<double>& minAngles, vector<double>& maxAngles) {
+// Inverse Kinematics improvement : Damped Least Squares / LM 
+vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& angles, Matriks target, vector<double>& minAngles, vector<double>& maxAngles, vector<Obstacle> objects) {
     // Check if data invalid or not
     if (lengths.size() != angles.size() || angles.size() != minAngles.size() || angles.size() != maxAngles.size()) {
         throw invalid_argument("[ERROR] Data invalid");
