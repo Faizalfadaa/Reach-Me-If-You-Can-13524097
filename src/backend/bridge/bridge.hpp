@@ -11,8 +11,7 @@
 using namespace std;
 
 struct Obstacle {
-    double x;
-    double y;
+    Matriks midPoint;
     double radius;
 };
 
@@ -82,8 +81,10 @@ vector<Obstacle> convertCircles(vector<Circle>& obstacles, float baseX, float ba
 
     for(int i = 0; i < obstacles.size(); i++) {
         Obstacle object;
-        object.x = obstacles[i].center.x - baseX;
-        object.y = baseY - obstacles[i].center.y;
+        object.midPoint = Matriks(vector<vector<double>>{
+            {obstacles[i].center.x - baseX},
+            {baseY - obstacles[i].center.y}
+        });
         object.radius = obstacles[i].radius;
 
         objects.push_back(object);
