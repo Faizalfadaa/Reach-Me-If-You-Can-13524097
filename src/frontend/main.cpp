@@ -12,7 +12,7 @@ int main() {
     const int screenHeight = 900;
     const int panelHeight = 350;
     const int canvasHeight = screenHeight - panelHeight;
-    const int animationDelay = 10;
+    const int animationDelay = 2;
 
     // Main GUI inputs required by the task
     int jointCount = 2;
@@ -34,6 +34,7 @@ int main() {
     vector<Circle> obstacles;
     Vector2 circleTarget;
     bool isObjectButtonClicked = false;
+    bool isDeleteObjectButtonClicked = false;
 
     // Inverse Kinematics data
     vector<IKResult> ikResult;
@@ -142,7 +143,7 @@ int main() {
         DrawText("Max", dividerX + 765, panelY + 80, 16, Color{65, 68, 72, 255});
         
         // Button to start the inverse kinematics
-        if (GuiButton(Rectangle{36, panelY + 290, 130, 34}, "START")) {
+        if (GuiButton(Rectangle{36, panelY + 245, 130, 34}, "START")) {
             if(hasTarget) {
                 Matriks convertedTarget = convertTarget(target.x, target.y, basePosition.x, basePosition.y);
                 vector<double> convertedLengths = convertLengths(segmentLengths, jointCount);
@@ -162,8 +163,15 @@ int main() {
         }
 
         // Button to add a new circle obstacle
-        if (GuiButton(Rectangle{176, panelY + 290, 90, 34}, "ADD OBJECT")) {
+        if (GuiButton(Rectangle{36, panelY + 290, 110, 34}, "ADD OBJECT")) {
             isObjectButtonClicked = true;
+            isDeleteObjectButtonClicked = false;
+        }
+
+        // Button to delete a circle obstacle
+        if (GuiButton(Rectangle{156, panelY + 290, 110, 34}, "DELETE OBJECT")) {
+            isDeleteObjectButtonClicked = true;
+            isObjectButtonClicked = false;
         }
 
         // Segment rows shown according to current joint count
@@ -227,6 +235,19 @@ int main() {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mousePosition = GetMousePosition();
             bool isTargetInsideObstacle = false;
+            bool isObjectDeleted = false;
+
+            // Delete object if delete button is clicked
+            if(mousePosition.y < canvasHeight && isDeleteObjectButtonClicked) {
+                for (int i = 0; i < obstacles.size(); i++) {
+                    if (isPointInsideCircle(mousePosition, obstacles[i])) {
+                        obstacles.erase(obstacles.begin() + i);
+                        isObjectDeleted = true;
+                        isDeleteObjectButtonClicked = false;
+                        break;
+                    }
+                }
+            }
 
             // Check every object if we put the target inside the obstacle
             for (int i = 0; i < obstacles.size(); i++) {
@@ -235,12 +256,12 @@ int main() {
                 }
             }
 
-            if(mousePosition.y < canvasHeight && !isTargetInsideObstacle && isObjectButtonClicked) {
+            if(mousePosition.y < canvasHeight && !isTargetInsideObstacle && isObjectButtonClicked && !isObjectDeleted) {
                 circleTarget = mousePosition;
                 isObjectButtonClicked = false;
                 obstacles.push_back(Circle{circleTarget, 45});
 
-            } else if (mousePosition.y < canvasHeight && !isTargetInsideObstacle && !isObjectButtonClicked) {
+            } else if (mousePosition.y < canvasHeight && !isTargetInsideObstacle && !isObjectButtonClicked && !isDeleteObjectButtonClicked && !isObjectDeleted) {
                 target = mousePosition;
                 hasTarget = true;
             }
