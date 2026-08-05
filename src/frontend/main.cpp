@@ -38,6 +38,8 @@ int main() {
 
     // Inverse Kinematics data
     vector<IKResult> ikResult;
+    IKStatus ikStatus = IK_RUNNING;
+    bool hasIKStatus = false;
 
     // for animation purposes
     bool isRunning = false;
@@ -154,11 +156,19 @@ int main() {
 
                 // Start the inverse kinematics
                 ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles, convertedObstacles);
+                if (!ikResult.empty()) {
+                    ikStatus = ikResult.back().status;
+                    hasIKStatus = true;
+                }
                 
                 // Start the animation
                 animationFrame = 0;
                 animationDelayCounter = 0;
-                isRunning = !ikResult.empty();
+                if (ikStatus == IK_UNREACHABLE_DISTANCE) {
+                    isRunning = false;
+                } else {
+                    isRunning = !ikResult.empty();
+                }
             }
         }
 
@@ -274,6 +284,28 @@ int main() {
 
             DrawText(TextFormat("(%.0f, %.0f)", targetBackendX, targetBackendY), target.x - 38, target.y - 32, 18, Color{45, 48, 52, 255});
             DrawCircleV(target, 13, Color{45, 48, 52, 255});
+        }
+
+        // Draw inverse kinematics status
+        if (hasIKStatus) {
+            if (ikStatus == IK_REACHED) {
+                DrawText("Target reached", 24, 20, 20, Color{40, 140, 70, 255});
+            } else if (ikStatus == IK_NOT_REACHED) {
+                DrawText("Target not reached", 24, 20, 20, Color{210, 72, 72, 255});
+            } else if (ikStatus == IK_UNREACHABLE_DISTANCE) {
+                DrawText("Target unreachable", 24, 20, 20, Color{210, 72, 72, 255});
+            }
+
+            if (!ikResult.empty()) {
+                int currentIteration = animationFrame + 1;
+                int totalIteration = ikResult.size();
+
+                if (currentIteration > totalIteration) {
+                    currentIteration = totalIteration;
+                }
+
+                DrawText(TextFormat("Iterasi: %d / %d", currentIteration, totalIteration), 24, 44, 20, Color{65, 68, 72, 255});
+            }
         }
 
         EndDrawing();
