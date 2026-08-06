@@ -35,6 +35,7 @@ int main() {
     Vector2 circleTarget;
     bool isObjectButtonClicked = false;
     bool isDeleteObjectButtonClicked = false;
+    bool isAlgorithmSelectionShown = false;
 
     // Inverse Kinematics data
     vector<IKResult> ikResult;
@@ -144,8 +145,28 @@ int main() {
         DrawText("Min", dividerX + 665, panelY + 80, 16, Color{65, 68, 72, 255});
         DrawText("Max", dividerX + 765, panelY + 80, 16, Color{65, 68, 72, 255});
         
-        // Button to start the inverse kinematics
-        if (GuiButton(Rectangle{36, panelY + 245, 130, 34}, "START")) {
+        bool isJacobianButtonClicked = false;
+        bool isDLSButtonClicked = false;
+
+        // Button to show inverse kinematics algorithm options
+        if (!isAlgorithmSelectionShown) {
+            if (GuiButton(Rectangle{36, panelY + 245, 130, 34}, "START")) {
+                isAlgorithmSelectionShown = true;
+            }
+        } else {
+            if (GuiButton(Rectangle{36, panelY + 245, 110, 34}, "JACOBIAN")) {
+                isJacobianButtonClicked = true;
+                isAlgorithmSelectionShown = false;
+            }
+
+            if (GuiButton(Rectangle{156, panelY + 245, 110, 34}, "DLS")) {
+                isDLSButtonClicked = true;
+                isAlgorithmSelectionShown = false;
+            }
+        }
+
+        // Start the inverse kinematics using the selected algorithm
+        if (isJacobianButtonClicked || isDLSButtonClicked) {
             if(hasTarget) {
                 Matriks convertedTarget = convertTarget(target.x, target.y, basePosition.x, basePosition.y);
                 vector<double> convertedLengths = convertLengths(segmentLengths, jointCount);
@@ -155,7 +176,12 @@ int main() {
                 vector<Obstacle> convertedObstacles = convertCircles(obstacles, basePosition.x, basePosition.y);
 
                 // Start the inverse kinematics
-                ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles, convertedObstacles);
+                if (isJacobianButtonClicked) {
+                    ikResult = jacobianTranspose(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles, convertedObstacles);
+                } else {
+                    ikResult = DampedLeastSquares(convertedLengths, convertedAngles, convertedTarget, convertedMinAngles, convertedMaxAngles, convertedObstacles);
+                }
+
                 if (!ikResult.empty()) {
                     ikStatus = ikResult.back().status;
                     hasIKStatus = true;
