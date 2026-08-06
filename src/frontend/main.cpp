@@ -1,5 +1,7 @@
 #include "raylib.h"
 #include "cmath"
+#include "cstdio"
+#include "cstdlib"
 #include "../backend/invers/inverseKinematics.cpp"
 #include "../backend/bridge/bridge.hpp"
 #include "circle.cpp"
@@ -13,6 +15,7 @@ int main() {
     const int panelHeight = 350;
     const int canvasHeight = screenHeight - panelHeight;
     const int animationDelay = 2;
+    const int angleTextSize = 8;
 
     // Main GUI inputs required by the task
     int jointCount = 2;
@@ -25,6 +28,8 @@ int main() {
     bool lengthEditMode[5] = {};
     bool minAngleEditMode[5] = {};
     bool maxAngleEditMode[5] = {};
+    char minAngleText[5][8] = {"-180", "-180", "-180", "-180", "-180"};
+    char maxAngleText[5][8] = {"180", "180", "180", "180", "180"};
 
     // Target of the inverse kinematics
     Vector2 target; 
@@ -247,7 +252,15 @@ int main() {
             DrawText(TextFormat("Segmen %d", i + 1), (dividerX + padding), (rowY), 22, Color{45, 48, 52, 255});
             GuiValueBox(Rectangle{dividerX + 150, rowY - 3, 78, 28}, nullptr, &segmentLengths[i], 10, 250, lengthEditMode[i]);
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 150, rowY - 3, 78, 28})) {
-                lengthEditMode[i] = !lengthEditMode[i];
+                bool currentEditMode = lengthEditMode[i];
+
+                for (int j = 0; j < 5; j++) {
+                    lengthEditMode[j] = false;
+                    minAngleEditMode[j] = false;
+                    maxAngleEditMode[j] = false;
+                }
+
+                lengthEditMode[i] = !currentEditMode;
             }
 
             // Joint angle input that is constrained by min and max angle
@@ -255,15 +268,43 @@ int main() {
             GuiSliderBar(Rectangle{dividerX + 300, rowY + 4, 320, 20}, nullptr, nullptr, &jointAngles[i], minAngles[i], maxAngles[i]);
 
             // Minimum angle constraint input
-            GuiValueBox(Rectangle{dividerX + 665, rowY - 3, 70, 28}, nullptr, &minAngles[i], -180, maxAngles[i], minAngleEditMode[i]);
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 665, rowY - 3, 70, 28})) {
-                minAngleEditMode[i] = !minAngleEditMode[i];
+            if (!minAngleEditMode[i]) {
+                snprintf(minAngleText[i], angleTextSize, "%d", minAngles[i]);
+            }
+
+            if (GuiTextBox(Rectangle{dividerX + 665, rowY - 3, 70, 28}, minAngleText[i], angleTextSize, minAngleEditMode[i])) {
+                if (minAngleEditMode[i]) {
+                    minAngles[i] = atoi(minAngleText[i]);
+                    minAngleEditMode[i] = false;
+                } else {
+                    for (int j = 0; j < 5; j++) {
+                        lengthEditMode[j] = false;
+                        minAngleEditMode[j] = false;
+                        maxAngleEditMode[j] = false;
+                    }
+
+                    minAngleEditMode[i] = true;
+                }
             }
 
             // Maximum angle constraint input
-            GuiValueBox(Rectangle{dividerX + 765, rowY - 3, 70, 28}, nullptr, &maxAngles[i], minAngles[i], 180, maxAngleEditMode[i]);
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), Rectangle{dividerX + 765, rowY - 3, 70, 28})) {
-                maxAngleEditMode[i] = !maxAngleEditMode[i];
+            if (!maxAngleEditMode[i]) {
+                snprintf(maxAngleText[i], angleTextSize, "%d", maxAngles[i]);
+            }
+
+            if (GuiTextBox(Rectangle{dividerX + 765, rowY - 3, 70, 28}, maxAngleText[i], angleTextSize, maxAngleEditMode[i])) {
+                if (maxAngleEditMode[i]) {
+                    maxAngles[i] = atoi(maxAngleText[i]);
+                    maxAngleEditMode[i] = false;
+                } else {
+                    for (int j = 0; j < 5; j++) {
+                        lengthEditMode[j] = false;
+                        minAngleEditMode[j] = false;
+                        maxAngleEditMode[j] = false;
+                    }
+
+                    maxAngleEditMode[i] = true;
+                }
             }
         }
 
