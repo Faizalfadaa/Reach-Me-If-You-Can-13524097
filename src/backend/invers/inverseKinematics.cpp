@@ -262,7 +262,7 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
         };
         
         // Create the Jacobian Matriks 
-        // Using Damped least Squares / Levenberg-Marquardt
+        // Using Damped least Squares / Levenberg-Marquardt, dettaTetha = JT(JJT+ lambda2I)^{-1} e
         Matriks J = jacobianMatriks(derivatives);
         Matriks JT = J; JT.transpose();
         Matriks JJT = J * JT;
