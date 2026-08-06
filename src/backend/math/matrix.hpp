@@ -138,6 +138,39 @@ class Matriks {
             this->col = temp;
         };
 
+        static double distance(Matriks m1, Matriks m2) {
+            return sqrt(pow(m1.data[0][0] - m2.data[0][0], 2) + pow(m1.data[1][0] - m2.data[1][0], 2));
+        }
+
+        static double coordinateX(Matriks& point) {
+            return point.data[0][0];
+        }
+
+        static double coordinateY(Matriks& point) {
+            return point.data[1][0];
+        }
+
+        static Matriks point2D(double x, double y) {
+            return Matriks(vector<vector<double>>{
+                {x}, 
+                {y}
+            });
+        }
+
+        static double dotProduct(Matriks& a, Matriks& b) {
+            return coordinateX(a) * coordinateX(b) + coordinateY(a) * coordinateY(b);
+        }
+
+        static Matriks normalize(Matriks vector) {
+            double length = sqrt(dotProduct(vector, vector));
+
+            if (length < 1e-12) {
+                return point2D(0.0, 0.0);
+            }
+
+            return point2D(coordinateX(vector) / length, coordinateY(vector) / length);
+        }
+
         static Matriks identity(int n) {
             vector<vector<double>> I;
             for(int i = 0; i < n; i++) {
