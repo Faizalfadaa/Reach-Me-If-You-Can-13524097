@@ -16,6 +16,8 @@ int main() {
     const int canvasHeight = screenHeight - panelHeight;
     const int animationDelay = 2;
     const int angleTextSize = 8;
+    const float obstacleRadius = 45.0;
+    const float robotBodyRadius = 13.0;
 
     // Main GUI inputs required by the task
     int jointCount = 2;
@@ -70,6 +72,14 @@ int main() {
         }
 
         // When animation is running, draw the current IK iteration result
+        if (!isRunning && !ikResult.empty() && hasIKStatus && ikStatus != IK_UNREACHABLE_DISTANCE) {
+            int lastFrame = ikResult.size() - 1;
+            int resultAngleCount = ikResult[lastFrame].angles.size();
+            for (int i = 0; i < jointCount && i < resultAngleCount; i++) {
+                displayAngles[i] = ikResult[lastFrame].angles[i] / DEG2RAD;
+            }
+        }
+
         if (isRunning && !ikResult.empty()) {
             if (animationFrame >= ikResult.size()) {
                 animationFrame = ikResult.size() - 1;
@@ -127,6 +137,7 @@ int main() {
         const float leftPanelWidth = 300;
         const float padding = 34;
         const float dividerX = leftPanelWidth;
+        Rectangle retryButton = Rectangle{screenWidth - 150.0f, panelY - 48.0f, 120, 34};
 
         // Vertical divider between left and right panel sections
         DrawLineEx(Vector2{dividerX, panelY}, Vector2{dividerX, screenHeight}, 2.0, Color{180, 185, 190, 255});
@@ -213,6 +224,17 @@ int main() {
         if (GuiButton(Rectangle{156, panelY + 290, 110, 34}, "DELETE OBJECT")) {
             isDeleteObjectButtonClicked = true;
             isObjectButtonClicked = false;
+        }
+
+        // Button to reset the robot arm to the initial angles
+        if (!isRunning && !ikResult.empty()) {
+            if (GuiButton(retryButton, "RETRY")) {
+                ikResult.clear();
+                hasIKStatus = false;
+                isRunning = false;
+                animationFrame = 0;
+                animationDelayCounter = 0;
+            }
         }
 
         // Segment rows shown according to current joint count
@@ -313,6 +335,7 @@ int main() {
             Vector2 mousePosition = GetMousePosition();
             bool isTargetInsideObstacle = false;
             bool isObjectDeleted = false;
+            bool isMouseInsideRetryButton = CheckCollisionPointRec(mousePosition, retryButton) && !ikResult.empty();
 
             // Delete object if delete button is clicked
             if(mousePosition.y < canvasHeight && isDeleteObjectButtonClicked) {
@@ -333,12 +356,16 @@ int main() {
                 }
             }
 
-            if(mousePosition.y < canvasHeight && !isTargetInsideObstacle && isObjectButtonClicked && !isObjectDeleted) {
+            if(mousePosition.y < canvasHeight && !isMouseInsideRetryButton && !isTargetInsideObstacle && isObjectButtonClicked && !isObjectDeleted) {
                 circleTarget = mousePosition;
-                isObjectButtonClicked = false;
-                obstacles.push_back(Circle{circleTarget, 45});
+                Circle newObstacle = Circle{circleTarget, obstacleRadius};
 
-            } else if (mousePosition.y < canvasHeight && !isTargetInsideObstacle && !isObjectButtonClicked && !isDeleteObjectButtonClicked && !isObjectDeleted) {
+                if (!isCircleTouchingArm(newObstacle, jointPositions, jointCount, robotBodyRadius)) {
+                    isObjectButtonClicked = false;
+                    obstacles.push_back(newObstacle);
+                }
+
+            } else if (mousePosition.y < canvasHeight && !isMouseInsideRetryButton && !isTargetInsideObstacle && !isObjectButtonClicked && !isDeleteObjectButtonClicked && !isObjectDeleted) {
                 target = mousePosition;
                 hasTarget = true;
             }
