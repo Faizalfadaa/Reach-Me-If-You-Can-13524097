@@ -1,3 +1,6 @@
+#ifndef CIRCLE_CPP
+#define CIRCLE_CPP
+
 #include "iostream"
 #include "cmath"
 #include "raylib.h"
@@ -21,3 +24,5 @@ bool isPointInsideCircle(Vector2 point, Circle obstacle) {
 
     return distance <= obstacle.radius;
 }
+
+#endif
