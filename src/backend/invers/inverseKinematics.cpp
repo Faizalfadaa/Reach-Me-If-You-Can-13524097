@@ -3,6 +3,7 @@
 #include "../forward/forwardKinematics.cpp"
 #include "../IKResult.hpp"
 #include "../bridge/bridge.hpp"
+#include "../avoidance/obstacleAvoidance.hpp"
 
 using namespace std;
 
@@ -11,11 +12,12 @@ using namespace std;
 
 // Constants declarations
 const double DEGREE = 0.01;
-const double MAX_LAMBDA = 5.0;
-const double MIN_LAMBDA = 2.0;
-const double MAX_DELTA_TETHA = 3.5 * DEG2RAD;
+const double MAX_LAMBDA = 50.0;
+const double MIN_LAMBDA = 8.0;
+const double MAX_DELTA_TETHA = 0.7 * DEG2RAD;
 const int MAX_ITERATION = 1000;
 const double TOLERANCE = 1.0;
+const double OBSTACLE_WEIGHT = 0.04;
 
 // Compute Error vector
 Matriks error(Matriks target, Matriks endEffector) {
@@ -39,32 +41,6 @@ Matriks jacobianMatriks(vector<Matriks> derivatives) {
     return Matriks(jacobianData);
 };
 
-// Get all joint positions coordinates
-vector<Matriks> getJointPositions(vector<double>& lengths, vector<double>& angles) {
-    vector<Matriks> jointPositions;
-    double x = 0.0;
-    double y = 0.0;
-    double totalAngle = 0.0;
-
-    jointPositions.push_back(Matriks(vector<vector<double>>{
-        {x},
-        {y}
-    }));
-
-    for (int i = 0; i < lengths.size(); i++) {
-        totalAngle += angles[i];
-        x += cos(totalAngle) * lengths[i];
-        y += sin(totalAngle) * lengths[i];
-
-        jointPositions.push_back(Matriks(vector<vector<double>>{
-            {x},
-            {y}
-        }));
-    }
-
-    return jointPositions;
-}
-
 // Compute alpha for jacobian transpose
 double computeAlpha(Matriks J, Matriks errorPos) {
     Matriks eT = errorPos;
@@ -83,11 +59,19 @@ double computeAlpha(Matriks J, Matriks errorPos) {
         return 0.0;
     }
 
-    return numerator / denominator;
+    // Check determinant for singularity
+    double determinant = JJT.getData()[0][0] * JJT.getData()[1][1] - JJT.getData()[1][0] * JJT.getData()[0][1];
+    double alpha = numerator / denominator;
+
+    if (sqrt(abs(determinant)) < 100.0) {
+        alpha *= 0.05;
+    }
+
+    return alpha;
 }
 
 // Inverse Kinematics Method : Jacobian transpose
-vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matriks target, vector<double>& minAngles, vector<double>& maxAngles) {
+vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matriks target, vector<double>& minAngles, vector<double>& maxAngles, vector<Obstacle> objects) {
     // Check if data invalid or not
     if (lengths.size() != angles.size() || angles.size() != minAngles.size() || angles.size() != maxAngles.size()) {
         throw invalid_argument("[ERROR] Data invalid");
@@ -98,9 +82,29 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
     vector<Matriks> derivatives(jointCount);
     bool found = false;
     int iteration = 0;
+    vector<int> tangentialSigns(objects.size(), 0);
 
     // Result data stored in vector of IKResult
     vector<IKResult> result;
+
+    // Check if the target is reachable or not
+    double maxReach = 0.0;
+    for (int i = 0; i < jointCount; i++) {
+        maxReach += lengths[i];
+    }
+
+    double targetDistance = sqrt(pow(target.getData()[0][0], 2) + pow(target.getData()[1][0], 2));
+    if (targetDistance > maxReach) {
+        Matriks endEffector = forwardKinematics(lengths, angles);
+        IKResult currentResult;
+        currentResult.angles = angles;
+        currentResult.endEffector = endEffector;
+        currentResult.error = error(target, endEffector);
+        currentResult.status = IK_UNREACHABLE_DISTANCE;
+        result.push_back(currentResult);
+
+        return result;
+    }
 
     while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
@@ -114,6 +118,7 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
         currentResult.angles = angles;
         currentResult.endEffector = endEffector;
         currentResult.error = errorPos;
+        currentResult.status = IK_RUNNING;
 
         result.push_back(currentResult);
 
@@ -140,13 +145,21 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
         double a = computeAlpha(J, errorPos);
         J.transpose();
 
-        // Compute the suggested angular change for each joint using J Transpose × error
+        // Compute the suggested angular change for each joint using J Transpose x error
         // for each joint for each iteration
         Matriks change = J * errorPos;
 
-        // Update each angle using step size (a)
+        Matriks deltaTetha(jointCount, 1);
+        for (int i = 0; i < jointCount; i++) {
+            deltaTetha.getData()[i][0] = a * change.getData()[i][0];
+        }
+
+        Matriks obstacleDeltaTetha = getObstacleAvoidanceDelta(lengths, angles, target, objects, tangentialSigns);
+        deltaTetha = selectHardConstrainedDelta(lengths, angles, deltaTetha, obstacleDeltaTetha, minAngles, maxAngles, objects, OBSTACLE_WEIGHT, MAX_DELTA_TETHA);
+
+        // Update each angle using selected delta
         for(int i = 0; i < jointCount; i++) {
-            angles[i] += a * (change.getData()[i][0]);
+            angles[i] += deltaTetha.getData()[i][0];
             
             // Constraint the angles
             if (angles[i] < minAngles[i]){
@@ -161,12 +174,22 @@ vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angl
         double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
         if(errorNorm < TOLERANCE) {
             found = true;
+            result.back().status = IK_REACHED;
         }
 
         iteration++;
     }
 
+    if (!found && !result.empty()) {
+        result.back().status = IK_NOT_REACHED;
+    }
+
     return result;
+};
+
+vector<IKResult> jacobianTranspose(vector<double>& lengths, vector<double>& angles, Matriks target, vector<double>& minAngles, vector<double>& maxAngles) {
+    vector<Obstacle> objects;
+    return jacobianTranspose(lengths, angles, target, minAngles, maxAngles, objects);
 };
 
 // Inverse Kinematics improvement : Damped Least Squares / LM 
@@ -181,9 +204,28 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
     vector<Matriks> derivatives(jointCount);
     int iteration = 0;
     bool found = false;
+    vector<int> tangentialSigns(objects.size(), 0);
 
     // Result data stored in vector of IKResult
     vector<IKResult> result;
+
+    double maxReach = 0.0;
+    for (int i = 0; i < jointCount; i++) {
+        maxReach += lengths[i];
+    }
+
+    double targetDistance = sqrt(pow(target.getData()[0][0], 2) + pow(target.getData()[1][0], 2));
+    if (targetDistance > maxReach) {
+        Matriks endEffector = forwardKinematics(lengths, angles);
+        IKResult currentResult;
+        currentResult.angles = angles;
+        currentResult.endEffector = endEffector;
+        currentResult.error = error(target, endEffector);
+        currentResult.status = IK_UNREACHABLE_DISTANCE;
+        result.push_back(currentResult);
+
+        return result;
+    }
 
     while(!found && iteration < MAX_ITERATION) {
         // Get the end effector position
@@ -191,12 +233,14 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
 
         // Compute the error from the end effector position to the target position
         Matriks errorPos = error(target, endEffector);
+        double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
 
         // Insert the result for each iteratiom
         IKResult currentResult;
         currentResult.angles = angles;
         currentResult.endEffector = endEffector;
         currentResult.error = errorPos;
+        currentResult.status = IK_RUNNING;
 
         result.push_back(currentResult);
 
@@ -218,7 +262,7 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
         };
         
         // Create the Jacobian Matriks 
-        // Using Damped least Squares / Levenberg–Marquardt
+        // Using Damped least Squares / Levenberg-Marquardt
         Matriks J = jacobianMatriks(derivatives);
         Matriks JT = J; JT.transpose();
         Matriks JJT = J * JT;
@@ -255,16 +299,10 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
         Matriks AInversE = AInvers * errorPos;
 
         Matriks deltaTetha = JT * AInversE;
-        for (int i = 0; i < jointCount; i++) {
-            // Clamp delta tetha so it doesnt rotate extremely
-            if (deltaTetha.getData()[i][0] > MAX_DELTA_TETHA) {
-                deltaTetha.getData()[i][0] = MAX_DELTA_TETHA;
-            }
-            
-            if (deltaTetha.getData()[i][0] < -MAX_DELTA_TETHA) {
-                deltaTetha.getData()[i][0] = - MAX_DELTA_TETHA;
-            }
+        Matriks obstacleDeltaTetha = getObstacleAvoidanceDelta(lengths, angles, target, objects, tangentialSigns);
+        deltaTetha = selectHardConstrainedDelta(lengths, angles, deltaTetha, obstacleDeltaTetha, minAngles, maxAngles, objects, OBSTACLE_WEIGHT, MAX_DELTA_TETHA);
 
+        for (int i = 0; i < jointCount; i++) {
             angles[i] += deltaTetha.getData()[i][0];
 
             // Constraint the angles
@@ -277,13 +315,17 @@ vector<IKResult> DampedLeastSquares(vector<double>& lengths, vector<double>& ang
             }
         }
 
-        double errorNorm = sqrt(pow(errorPos.getData()[0][0], 2) + pow(errorPos.getData()[1][0], 2));
         if(errorNorm < TOLERANCE) {
             found = true;
+            result.back().status = IK_REACHED;
         }
 
         iteration++;
     }    
+
+    if (!found && !result.empty()) {
+        result.back().status = IK_NOT_REACHED;
+    }
 
     return result;
 }
